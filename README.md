@@ -1,4 +1,4 @@
-# PAOJ 2026
+# PAOJ 2026 (STUDENT ALECSE VICTOR-ALIN)
 
 Proiect educațional pentru cursul **Programare Avansată pe Obiecte în Java**.
 
