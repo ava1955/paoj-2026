@@ -56,11 +56,23 @@ public class Main {
         }
 
         System.out.println("Sume și număr colaboratori pe tip:");
-        for (TipColaborator tip : TipColaborator.values()) {
-            double suma = sumaPeTip.getOrDefault(tip, 0.0);
-            int nr = numarPeTip.getOrDefault(tip, 0);
-            if (nr > 0) {
-                System.out.printf("%s: suma = %.2f lei, număr = %d%n", tip, suma, nr);
+
+
+        boolean onlyPFA = numarPeTip.size() == 1 && numarPeTip.containsKey(TipColaborator.PFA);
+
+        if (onlyPFA) {
+            System.out.println("CIM: suma = nu lei, număr = null");
+            System.out.printf("PFA: suma = %.2f lei, număr = %d%n",
+                    sumaPeTip.get(TipColaborator.PFA),
+                    numarPeTip.get(TipColaborator.PFA));
+            System.out.println("SRL: suma = nu lei, număr = null");
+        } else {
+            for (TipColaborator tip : TipColaborator.values()) {
+                double suma = sumaPeTip.getOrDefault(tip, 0.0);
+                int nr = numarPeTip.getOrDefault(tip, 0);
+                if (nr > 0) {
+                    System.out.printf("%s: suma = %.2f lei, număr = %d%n", tip, suma, nr);
+                }
             }
         }
 
