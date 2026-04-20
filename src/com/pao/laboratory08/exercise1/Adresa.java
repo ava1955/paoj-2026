@@ -26,3 +26,4 @@ public class Adresa implements Cloneable {
         return super.clone();
     }
 }
+
