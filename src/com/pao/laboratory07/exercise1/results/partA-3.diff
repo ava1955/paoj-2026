@@ -1,0 +1,12 @@
+--- expected
++++ actual
+@@ -1,6 +1,6 @@
+ Initial order state: PLACED
+-Order state updated to: PROCESSED
+-Order state updated to: SHIPPED
+-Order state updated to: DELIVERED
++PROCESSED
++SHIPPED
++DELIVERED
+ Order is already in a final state.
+ User quit the program.
