@@ -122,12 +122,14 @@ public class Main {
         String cnp = sc.nextLine().trim();
         System.out.print("IBAN cont: ");
         String iban = sc.nextLine().trim();
+        System.out.print("Tip card: ");
+        String tip = sc.nextLine().trim();
         try {
             Client client = clientService.cautaClientDupaCNP(cnp);
             if (client == null) { System.out.println("Clientul nu a fost gasit."); return; }
             ContBancar cont = bancaService.cautaContDupaIBAN(iban);
             if (cont == null) { System.out.println("Contul nu a fost gasit."); return; }
-            bancaService.emiteCard(client, cont);
+            bancaService.emiteCard(client, cont, tip);
             System.out.println("Card emis cu succes.");
         } catch (InvalidCNPException e) {
             System.out.println("Eroare: " + e.getMessage());

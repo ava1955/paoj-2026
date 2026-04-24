@@ -28,16 +28,21 @@ public class BancaService {
         client.adaugaCont(cont);
     }
 
-    public void emiteCard(Client client, ContBancar cont) {
+    public void emiteCard(Client client, ContBancar cont, String tip) {
         if (client == null || cont == null) throw new IllegalArgumentException("Date invalide");
         try {
             String numar;
             do {
                 numar = String.valueOf(400000000L + (long) (Math.random() * 999999999L));
             } while (banca.cardExista(numar));
-
-            CardBancar card = new CardBancar(numar, "1234", LocalDate.now().plusYears(4), CardBancar.TipCard.DEBIT, cont, false);
-            banca.adaugaCard(card);
+            if(tip.equals("Debit".toLowerCase())){
+                CardBancar card = new CardBancar(numar, "1234", LocalDate.now().plusYears(4), CardBancar.TipCard.DEBIT, cont, false);
+                banca.adaugaCard(card);
+            }
+            else if(tip.equals("Credit".toLowerCase())){
+                CardBancar card = new CardBancar(numar, "1234", LocalDate.now().plusYears(4), CardBancar.TipCard.CREDIT, cont, false);
+                banca.adaugaCard(card);
+            }
         } catch (InvalidPINException e) {
             throw new IllegalStateException("Eroare la generarea cardului: " + e.getMessage());
         }
