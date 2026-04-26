@@ -34,10 +34,7 @@ public class CardBancar {
     public boolean esteBlocat() {
         return blocat;
     }
-    public void efectueazaPlata(double suma) throws InsufficientFundsException {
-        if (blocat) throw new IllegalStateException("Cardul este blocat!");
-        contAsociat.retragere(suma);
-    }
+
     public String getPIN() {
         return PIN;
     }

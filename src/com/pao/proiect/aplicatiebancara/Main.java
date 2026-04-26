@@ -133,6 +133,8 @@ public class Main {
             System.out.println("Card emis cu succes.");
         } catch (InvalidCNPException e) {
             System.out.println("Eroare: " + e.getMessage());
+        } catch (IllegalArgumentException e) {          // adaugă asta
+            System.out.println("Eroare: " + e.getMessage());
         }
     }
 

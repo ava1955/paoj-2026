@@ -1,8 +1,10 @@
 package com.pao.proiect.aplicatiebancara.model;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class IstoricTranzactie {
-    List<Tranzactie> listaTranzactii;
+    private List<Tranzactie> listaTranzactii;
     public IstoricTranzactie(List<Tranzactie> listaTranzactii){
         this.listaTranzactii=listaTranzactii;
     }
@@ -15,5 +17,13 @@ public class IstoricTranzactie {
     public Tranzactie getUltimaTranzactie() {
         if (listaTranzactii.isEmpty()) return null;
         return listaTranzactii.get(listaTranzactii.size() - 1);
+    }
+    public List<Tranzactie> getTranzactiiInPerioda(LocalDate start, LocalDate end) {
+        return listaTranzactii.stream()
+                .filter(t -> {
+                    LocalDate data = t.dataSiOra().toLocalDate();
+                    return !data.isBefore(start) && !data.isAfter(end);
+                })
+                .collect(Collectors.toList());
     }
 }

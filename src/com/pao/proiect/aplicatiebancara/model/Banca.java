@@ -66,6 +66,7 @@ public class Banca {
         if (cont != null) {
             listaConturi.remove(cont);
             conturiByIBAN.remove(cont.getIBAN());
+            cont.getTitular().listaConturi.remove(cont);
         }
     }
     public void stergeClient(Client client) {
@@ -78,14 +79,14 @@ public class Banca {
             }
             return false;
         });
-
+        for (ContBancar cont : client.getListaConturi()) {
+            listaConturi.remove(cont);
+            conturiByIBAN.remove(cont.getIBAN());
+        }
         listaClienti.remove(client);
         clientiByCNP.remove(client.getCNP());
         idsClienti.remove(client.IDClient);
         if (client instanceof ClientPremium cp) clientiPremium.remove(cp);
-    }
-    public Client cautaClientDupaCNP(String cnp) {
-        return clientiByCNP.get(cnp);
     }
 
     public Client getClientByCNP(String cnp) {

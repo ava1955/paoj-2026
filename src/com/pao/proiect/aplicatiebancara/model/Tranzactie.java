@@ -2,12 +2,6 @@ package com.pao.proiect.aplicatiebancara.model;
 
 import java.time.LocalDateTime;
 
-enum TipTranzactie {
-    DEPUNERE,
-    RETRAGERE,
-    TRANSFER
-}
-
 public record Tranzactie(String idTranzactie, double suma, LocalDateTime dataSiOra, String descriere, TipTranzactie tipTranzactie, ContBancar contSursa, ContBancar contDestinatar) {
     public void inregistreazaTranzactie() {
         System.out.println("Tranzactie inregistrata: " + idTranzactie() + " | " + suma + " RON | " + tipTranzactie());

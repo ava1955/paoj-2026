@@ -10,7 +10,7 @@ public class BancaService {
 
     private static BancaService instance;
     private final Banca banca;
-
+    private int contorConturi = 0;
     private BancaService(Banca banca) {
         this.banca = banca;
     }
@@ -22,7 +22,7 @@ public class BancaService {
 
     public void creeazaContNou(Client client) {
         if (client == null) throw new IllegalArgumentException("Client invalid");
-        String iban = "RO" + (1000000000L + banca.getListaConturi().size());
+        String iban = "RO" + (1000000000L + contorConturi++);
         ContBancar cont = new ContBancar(iban, 0, "RON", LocalDate.now(), client);
         banca.adaugaCont(cont);
         client.adaugaCont(cont);
@@ -35,14 +35,15 @@ public class BancaService {
             do {
                 numar = String.valueOf(400000000L + (long) (Math.random() * 999999999L));
             } while (banca.cardExista(numar));
-            if(tip.equals("Debit".toLowerCase())){
+            if("debit".equalsIgnoreCase(tip)){
                 CardBancar card = new CardBancar(numar, "1234", LocalDate.now().plusYears(4), CardBancar.TipCard.DEBIT, cont, false);
                 banca.adaugaCard(card);
             }
-            else if(tip.equals("Credit".toLowerCase())){
+            else if("credit".equalsIgnoreCase(tip)){
                 CardBancar card = new CardBancar(numar, "1234", LocalDate.now().plusYears(4), CardBancar.TipCard.CREDIT, cont, false);
                 banca.adaugaCard(card);
             }
+            else throw new IllegalArgumentException("Tip card invalid. Folositi: debit / credit");
         } catch (InvalidPINException e) {
             throw new IllegalStateException("Eroare la generarea cardului: " + e.getMessage());
         }
@@ -68,9 +69,30 @@ public class BancaService {
 
     public ExtrasDeCont genereazaExtras(ContBancar cont, LocalDate start, LocalDate end) {
         if (cont == null) throw new IllegalArgumentException("Cont invalid");
+
+        List<Tranzactie> tranzactii = cont.getIstoricTranzactii()
+                .getTranzactiiInPerioda(start, end);
+
+        double soldSfarsit = cont.getSold();
+
+        double totalIntrari = tranzactii.stream()
+                .filter(t -> t.tipTranzactie() == TipTranzactie.DEPUNERE
+                        || (t.tipTranzactie() == TipTranzactie.TRANSFER
+                        && t.contDestinatar() == cont))
+                .mapToDouble(Tranzactie::suma)
+                .sum();
+
+        double totalIesiri = tranzactii.stream()
+                .filter(t -> t.tipTranzactie() == TipTranzactie.RETRAGERE
+                        || (t.tipTranzactie() == TipTranzactie.TRANSFER
+                        && t.contSursa() == cont))
+                .mapToDouble(Tranzactie::suma)
+                .sum();
+
+        double soldInceput = soldSfarsit - totalIntrari + totalIesiri;
+
         LocalDate[] perioada = {start, end};
-        List<Tranzactie> tranzactii = cont.getIstoricTranzactii().getTranzactiiRecente(50);
-        ExtrasDeCont extras = new ExtrasDeCont(perioada, tranzactii, cont, 0, cont.getSold());
+        ExtrasDeCont extras = new ExtrasDeCont(perioada, tranzactii, cont, soldInceput, soldSfarsit);
         extras.genereazaExtrasPDF();
         return extras;
     }

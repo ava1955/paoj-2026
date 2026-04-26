@@ -3,7 +3,6 @@ package com.pao.proiect.aplicatiebancara.model;
 import com.pao.proiect.aplicatiebancara.exception.InvalidCNPException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 
 public class ClientPremium extends Client{
     private double limitaMaximaTranzactii, dobandaBonus;

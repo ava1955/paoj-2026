@@ -26,4 +26,4 @@
     6. Tranzactie
     7. ExtrasDeCont
     8. Banca
-    9. IstoricTranzactii
+    9. IstoricTranzactie
