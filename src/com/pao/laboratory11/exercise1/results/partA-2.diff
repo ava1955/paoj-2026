@@ -1,0 +1,7 @@
+--- expected
++++ actual
+@@ -1,2 +1,2 @@
+-CHECK 1 => ALLOW score=25
+-CHECK 2 => FLAG score=60
++CHECK 1 => ALLOW score=3
++CHECK 2 => ALLOW score=0

@@ -32,6 +32,9 @@ public class Banca {
         for (ContBancar c : this.listaConturi) {
             conturiByIBAN.put(c.getIBAN(), c);
         }
+        for (CardBancar card : this.listaCarduri) {
+            carduriByNumar.put(card.getNumarCard(), card);
+        }
     }
 
     public void adaugaClient(Client client) {
@@ -116,4 +119,9 @@ public class Banca {
     public ContBancar getContByIBAN(String iban) {
         return conturiByIBAN.get(iban);
     }
+
+    public CardBancar getCardByNumar(String numarCard) {
+        return carduriByNumar.get(numarCard);
+    }
+
 }

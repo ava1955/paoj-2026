@@ -11,7 +11,12 @@ public class Client extends Persoana {
     protected LocalDate dataInregistrare;
     protected List<ContBancar> listaConturi;
     protected String statusClient;
-
+    public int getIDClient() {
+        return IDClient;
+    }
+    public LocalDate getDataInregistrare() {
+        return dataInregistrare;
+    }
     public Client(String CNP, String nume, String prenume, String adresa,
                   LocalDate dataNastere, int IDClient, LocalDate dataInregistrare) throws InvalidCNPException {
         super(CNP, nume, prenume, adresa, dataNastere);

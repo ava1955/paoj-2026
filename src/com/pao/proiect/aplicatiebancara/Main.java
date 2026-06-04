@@ -3,26 +3,38 @@ package com.pao.proiect.aplicatiebancara;
 import com.pao.proiect.aplicatiebancara.exception.InsufficientFundsException;
 import com.pao.proiect.aplicatiebancara.exception.InvalidCNPException;
 import com.pao.proiect.aplicatiebancara.model.*;
+import com.pao.proiect.aplicatiebancara.repository.*;
 import com.pao.proiect.aplicatiebancara.service.BancaService;
 import com.pao.proiect.aplicatiebancara.service.CardService;
 import com.pao.proiect.aplicatiebancara.service.ClientService;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
+import com.pao.proiect.aplicatiebancara.model.*;
+import com.pao.proiect.aplicatiebancara.repository.ClientRepository;
+import com.pao.proiect.aplicatiebancara.repository.ContBancarRepository;
+import com.pao.proiect.aplicatiebancara.repository.CardBancarRepository;
 public class Main {
 
-    static Scanner sc = new Scanner(System.in);
-    static BancaService bancaService;
+    static Scanner       sc;
+    static BancaService  bancaService;
     static ClientService clientService;
-    static CardService cardService;
+    static CardService   cardService;
 
     public static void main(String[] args) {
-        Banca banca = new Banca("Banca", null, null, null);
-        bancaService = BancaService.getInstance(banca);
+        sc = new Scanner(System.in);
+
+        System.out.println("Se incarca datele din baza de date...");
+        Banca banca = incarcaBanca("Banca");
+
+        bancaService  = BancaService.getInstance(banca);
         clientService = ClientService.getInstance(banca);
-        cardService = CardService.getInstance(banca);
+        cardService   = CardService.getInstance(banca);
 
         while (true) {
             afiseazaMeniu();
@@ -43,15 +55,60 @@ public class Main {
                 case "13" -> eliminaClient();
                 case "14" -> listeazaCarduri();
                 case "15" -> blocheazaCard();
+                case "16" -> listeazaConturi();
                 case "0"  -> { System.out.println("La revedere!"); return; }
                 default   -> System.out.println("Optiune invalida.");
             }
         }
     }
 
+    private static Banca incarcaBanca(String numeBanca) {
+        try {
+            ClientRepository clientRepo = new ClientRepository();
+            ContBancarRepository contRepo = new ContBancarRepository();
+            CardBancarRepository cardRepo = new CardBancarRepository();
+            TranzactieRepository tranzactieRepo = new TranzactieRepository();
+
+            List<Client> clienti = clientRepo.findAll();
+            Map<String, Client> clientMap = new HashMap<>();
+            for (Client c : clienti) clientMap.put(c.getCNP(), c);
+
+            List<ContBancar> conturi = contRepo.findAll(clientMap);
+            Map<String, ContBancar> contMap = new HashMap<>();
+            for (ContBancar co : conturi) {
+                contMap.put(co.getIBAN(), co);
+                co.getTitular().adaugaCont(co);
+            }
+
+            List<CardBancar> carduri = cardRepo.findAll(contMap);
+            List<Tranzactie> tranzactii = tranzactieRepo.findAll(contMap);
+
+            for (Tranzactie t : tranzactii) {
+                if (t.contSursa() != null) {
+                    t.contSursa().getIstoricTranzactii().adaugaTranzactie(t);
+                }
+                if (t.contDestinatar() != null && t.contDestinatar() != t.contSursa()) {
+                    t.contDestinatar().getIstoricTranzactii().adaugaTranzactie(t);
+                }
+            }
+
+            System.out.println("[DB] Date incarcate: " + clienti.size() + " clienti, "
+                    + conturi.size() + " conturi, " + carduri.size() + " carduri, "
+                    + tranzactii.size() + " tranzactii.");
+
+            return new Banca(numeBanca, clienti, conturi, carduri);
+
+        } catch (SQLException e) {
+            System.err.println("[DB] Eroare la incarcarea datelor din DB: " + e.getMessage());
+            System.err.println("[DB] Se porneste cu date goale (in-memory only).");
+            return new Banca(numeBanca, null, null, null);
+        }
+    }
+
     static void afiseazaMeniu() {
         System.out.println("""
-                \n BANCA
+
+                 BANCA
                 1.  Adauga client
                 2.  Creeaza cont bancar
                 3.  Emite card bancar
@@ -67,26 +124,25 @@ public class Main {
                 13. Elimina client
                 14. Listeaza toate cardurile
                 15. Blocheaza card
+                16. Listeaza toate conturile
                 0.  Iesire
                 Alege optiunea: """);
     }
 
-    //  1 
     static void adaugaClient() {
         System.out.print("Tip client (1=Normal, 2=Premium): ");
         String tip = sc.nextLine().trim();
         try {
-            System.out.print("CNP: ");        String cnp    = sc.nextLine().trim();
-            System.out.print("Nume: ");       String nume   = sc.nextLine().trim();
-            System.out.print("Prenume: ");    String pren   = sc.nextLine().trim();
-            System.out.print("Adresa: ");     String adresa = sc.nextLine().trim();
-            System.out.print("ID client: ");  int id = Integer.parseInt(sc.nextLine().trim());
+            System.out.print("CNP: ");       String cnp    = sc.nextLine().trim();
+            System.out.print("Nume: ");      String nume   = sc.nextLine().trim();
+            System.out.print("Prenume: ");   String pren   = sc.nextLine().trim();
+            System.out.print("Adresa: ");    String adresa = sc.nextLine().trim();
+            System.out.print("ID client: "); int id = Integer.parseInt(sc.nextLine().trim());
 
             if (cnp.isBlank() || nume.isBlank() || pren.isBlank()) {
                 System.out.println("Eroare: CNP, nume si prenume nu pot fi goale.");
                 return;
             }
-
             Client client = tip.equals("2")
                     ? new ClientPremium(cnp, nume, pren, adresa, LocalDate.now(), id, LocalDate.now())
                     : new Client(cnp, nume, pren, adresa, LocalDate.now(), id, LocalDate.now());
@@ -101,7 +157,6 @@ public class Main {
         }
     }
 
-    //  2 
     static void creeazaCont() {
         System.out.print("CNP client: ");
         String cnp = sc.nextLine().trim();
@@ -109,21 +164,18 @@ public class Main {
             Client client = clientService.cautaClientDupaCNP(cnp);
             if (client == null) { System.out.println("Clientul nu a fost gasit."); return; }
             bancaService.creeazaContNou(client);
+            List<ContBancar> conturi = client.getListaConturi();
             System.out.println("Cont creat pentru " + client.getNume() + " " + client.getPrenume());
-            System.out.println("IBAN: " + client.getListaConturi().get(client.getListaConturi().size() - 1).getIBAN());
+            System.out.println("IBAN: " + conturi.get(conturi.size() - 1).getIBAN());
         } catch (InvalidCNPException e) {
             System.out.println("Eroare: " + e.getMessage());
         }
     }
 
-    //  3 
     static void emiteCard() {
-        System.out.print("CNP client: ");
-        String cnp = sc.nextLine().trim();
-        System.out.print("IBAN cont: ");
-        String iban = sc.nextLine().trim();
-        System.out.print("Tip card: ");
-        String tip = sc.nextLine().trim();
+        System.out.print("CNP client: "); String cnp  = sc.nextLine().trim();
+        System.out.print("IBAN cont: ");  String iban = sc.nextLine().trim();
+        System.out.print("Tip card (debit/credit): "); String tip = sc.nextLine().trim();
         try {
             Client client = clientService.cautaClientDupaCNP(cnp);
             if (client == null) { System.out.println("Clientul nu a fost gasit."); return; }
@@ -131,18 +183,14 @@ public class Main {
             if (cont == null) { System.out.println("Contul nu a fost gasit."); return; }
             bancaService.emiteCard(client, cont, tip);
             System.out.println("Card emis cu succes.");
-        } catch (InvalidCNPException e) {
-            System.out.println("Eroare: " + e.getMessage());
-        } catch (IllegalArgumentException e) {          // adaugă asta
+        } catch (InvalidCNPException | IllegalArgumentException e) {
             System.out.println("Eroare: " + e.getMessage());
         }
     }
 
-    //  4 
     static void efectueazaTranzactie() {
         System.out.print("IBAN cont sursa: ");
-        String iban = sc.nextLine().trim();
-        ContBancar cont = bancaService.cautaContDupaIBAN(iban);
+        ContBancar cont = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
         if (cont == null) { System.out.println("Contul nu a fost gasit."); return; }
 
         System.out.print("Tip (depunere/retragere/transfer): ");
@@ -155,11 +203,9 @@ public class Main {
             ContBancar destinatar = null;
             if ("transfer".equalsIgnoreCase(tip)) {
                 System.out.print("IBAN cont destinatar: ");
-                String ibanDest = sc.nextLine().trim();
-                destinatar = bancaService.cautaContDupaIBAN(ibanDest);
+                destinatar = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
                 if (destinatar == null) { System.out.println("Contul destinatar nu a fost gasit."); return; }
             }
-
             bancaService.efectueazaTranzactie(cont, suma, tip, destinatar);
             System.out.println("Tranzactie efectuata. Sold nou: " + cont.getSold());
         } catch (NumberFormatException e) {
@@ -169,32 +215,29 @@ public class Main {
         }
     }
 
-    //  5 
     static void genereazaExtras() {
         System.out.print("IBAN cont: ");
-        String iban = sc.nextLine().trim();
-        ContBancar cont = bancaService.cautaContDupaIBAN(iban);
+        ContBancar cont = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
         if (cont == null) { System.out.println("Contul nu a fost gasit."); return; }
         bancaService.genereazaExtras(cont, LocalDate.now().minusMonths(1), LocalDate.now());
     }
 
-    //  6 
     static void afiseazaIstoric() {
         System.out.print("IBAN cont: ");
-        String iban = sc.nextLine().trim();
-        ContBancar cont = bancaService.cautaContDupaIBAN(iban);
+        ContBancar cont = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
         if (cont == null) { System.out.println("Contul nu a fost gasit."); return; }
         bancaService.afiseazaIstoricTranzactii(cont);
+        System.out.println("\n Raport DB: Tranzactii cu date conturi si titulari");
+        bancaService.afiseazaTranzactiiComplete();
     }
 
-    //  7 
     static void cautaClient() {
         System.out.print("Cauta dupa (1=CNP, 2=Nume): ");
         String opt = sc.nextLine().trim();
         if (opt.equals("1")) {
             System.out.print("CNP: ");
             try {
-                Client c = clientService.cautaClientDupaCNP(sc.nextLine().trim());
+                Client c = clientService.cautaClientPublicDupaCNP(sc.nextLine().trim());
                 System.out.println(c != null ? c : "Clientul nu a fost gasit.");
             } catch (InvalidCNPException e) {
                 System.out.println("Eroare: " + e.getMessage());
@@ -209,21 +252,20 @@ public class Main {
         }
     }
 
-    //  8 
     static void cautaCont() {
         System.out.print("IBAN: ");
-        ContBancar cont = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
+        ContBancar cont = bancaService.cautaContSiAudit(sc.nextLine().trim());
         System.out.println(cont != null ? cont : "Contul nu a fost gasit.");
     }
 
-    //  9 
     static void listeazaClienti() {
         List<Client> clienti = clientService.listeazaTotiClientii();
         if (clienti.isEmpty()) { System.out.println("Nu exista clienti."); return; }
         clienti.forEach(System.out::println);
+        System.out.println("\n Raport DB: Clienti cu numarul de conturi ");
+        clientService.afiseazaClientiCuNrConturi();
     }
 
-    //  10 
     static void listeazaPremium() {
         List<ClientPremium> premium = clientService.listeazaClientiPremium();
         if (premium.isEmpty()) { System.out.println("Nu exista clienti premium."); return; }
@@ -232,7 +274,6 @@ public class Main {
                 + " | Dobanda bonus: " + c.getDobandaBonus()));
     }
 
-    //  11 
     static void soldTotal() {
         System.out.print("CNP client: ");
         try {
@@ -244,7 +285,6 @@ public class Main {
         }
     }
 
-    //  12 
     static void stergeCont() {
         System.out.print("IBAN cont: ");
         ContBancar cont = bancaService.cautaContDupaIBAN(sc.nextLine().trim());
@@ -257,7 +297,6 @@ public class Main {
         }
     }
 
-    //  13 
     static void eliminaClient() {
         System.out.print("CNP client: ");
         try {
@@ -272,24 +311,21 @@ public class Main {
         }
     }
 
-    //  14 
     static void listeazaCarduri() {
         List<CardBancar> carduri = cardService.listeazaToateCardurile();
         if (carduri.isEmpty()) { System.out.println("Nu exista carduri."); return; }
         carduri.forEach(c -> System.out.println("Card: " + (c.esteBlocat() ? "[BLOCAT]" : "[ACTIV]")
                 + " | Tip: " + c.getTipCard()
+                + " | Numar: " + c.getNumarCard()
                 + " | PIN: " + c.getPIN()));
+        System.out.println("\n Raport DB: Carduri cu detalii cont si titular ");
+        cardService.afiseazaCarduriCuDateContSiClient();
     }
 
-    //  15
     static void blocheazaCard() {
         System.out.print("Numar card: ");
         String numar = sc.nextLine().trim();
-        List<CardBancar> carduri = cardService.listeazaToateCardurile();
-        CardBancar card = carduri.stream()
-                .filter(c -> c.getNumarCard().equals(numar))
-                .findFirst()
-                .orElse(null);
+        CardBancar card = cardService.getCardByNumar(numar);
         if (card == null) { System.out.println("Cardul nu a fost gasit."); return; }
         if (card.esteBlocat()) { System.out.println("Cardul este deja blocat."); return; }
         try {
@@ -298,5 +334,13 @@ public class Main {
         } catch (IllegalArgumentException e) {
             System.out.println("Eroare: " + e.getMessage());
         }
+    }
+
+    static void listeazaConturi() {
+        List<ContBancar> conturi = bancaService.listeazaToateConturile();
+        if (conturi.isEmpty()) { System.out.println("Nu exista conturi."); return; }
+        conturi.forEach(System.out::println);
+        System.out.println("\n Raport DB: Conturi cu date titular ");
+        bancaService.afiseazaConturiCuDateTitular();
     }
 }
